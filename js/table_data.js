@@ -16,6 +16,13 @@ const getTableData = () => {
   return table_data;
 };
 
+const setTableCell = (row, col, data) => {
+  const table = getTableData();
+  table[row][col] = data;
+  setTableData(table);
+  updateDisplay(table);
+};
+
 /**
  * Generates a "Excel-Like" Column Label from a number
  * Eg. 2 => B, 27 => AA
@@ -78,6 +85,15 @@ const getEmptyGrid = (numOfRows, numOfCols) => {
   return data;
 };
 
+const tableEdit = (row, col, originalContent) => {
+  const promptText =
+    "Enter your new data (previous value: " + originalContent + ")";
+  let response = prompt(promptText, originalContent);
+  if (response != null) {
+    setTableCell(row, col, response.toUpperCase());
+  }
+};
+
 /**
  * Generates the Table HTML element based upon the parameter provided
  * @param {string[][]} table - the data to be displayed
@@ -115,6 +131,10 @@ const generateGridElement = (table) => {
       const dataNode = document.createTextNode(data);
 
       const tableDataNode = document.createElement("td");
+
+      // Add Listener for Node Edit
+      tableDataNode.addEventListener("click", () => tableEdit(row, col, data));
+
       tableDataNode.appendChild(dataNode);
       tableRow.appendChild(tableDataNode);
     }
@@ -126,7 +146,9 @@ const generateGridElement = (table) => {
 
 const updateDisplay = (table) => {
   const tableElement = generateGridElement(table);
-  document.getElementById("grid").appendChild(tableElement);
+  const grid = document.getElementById("grid");
+  grid.replaceChildren(); // Remove previous displays generated
+  grid.appendChild(tableElement);
 };
 
 const setup = () => {
