@@ -114,7 +114,7 @@ const getCellLettersAndNumbers = (cellRef) => {
 
   const numbersParsed = Number.parseInt(numbers);
   if (Number.isNaN(numbersParsed)) {
-    return null;
+    return { letters: null, numbers: null };
   }
 
   return { letters, numbers };
