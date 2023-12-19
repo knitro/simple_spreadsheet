@@ -1,4 +1,5 @@
 let table_data = [];
+let cyclic_check = [];
 
 /**
  * Sets the Stored Table Data
@@ -30,15 +31,25 @@ const setTableCell = (row, col, data) => {
 };
 
 /**
- * Retrieves cell data from the row and col specified
+ * Retrieves cell data from the row and col specified and parses if possible
  * @param {int} row
  * @param {int} col
- * @returns {string}
+ * @returns {string} the table cell, or "CYCLIC ERROR" if a cyclic error has been found
  */
 const getTableCell = (row, col) => {
   const table = getTableData();
   const data = table[row][col];
-  return data;
+
+  // Check for Cyclic
+  const valueCheck = row + "-" + col;
+  if (cyclic_check.includes(valueCheck)) {
+    return "CYCLIC ERROR";
+  }
+  cyclic_check.push(valueCheck);
+
+  const parsedData = parseData(data);
+  cyclic_check.pop();
+  return parsedData;
 };
 
 /**
@@ -102,7 +113,7 @@ const getCellLettersAndNumbers = (cellRef) => {
   const numbers = cellRef.substring(letterNumberSplitIndex);
 
   const numbersParsed = Number.parseInt(numbers);
-  if (numbersParsed == NaN) {
+  if (Number.isNaN(numbersParsed)) {
     return null;
   }
 
@@ -122,7 +133,7 @@ const getCellDataFromCellReference = (cellRef) => {
     const col = alphabetToIndex(letters); // Might return if letters are not valid (let through by regex)
     const row = Number.parseInt(numbers);
 
-    if (Number.parseInt(numbers) == NaN) {
+    if (Number.isNaN(Number.parseInt(numbers))) {
       return null;
     }
     const cellData = getTableCell(row - 1, col - 1); //-1 to account for array indexing
@@ -194,8 +205,11 @@ const parseData = (data) => {
       for (let row = minRow; row <= maxRow; row++) {
         for (let col = minCol; col <= maxCol; col++) {
           const cellData = getTableCell(row - 1, col - 1); //-1 to account for array indexing
+          if (cellData == "CYCLIC ERROR") {
+            return "CYCLIC ERROR";
+          }
           const cellDataNumber = Number.parseFloat(cellData);
-          if (cellDataNumber == NaN) {
+          if (Number.isNaN(cellDataNumber)) {
             return "SUM NaN";
           }
           sum += cellDataNumber;
@@ -214,13 +228,17 @@ const parseData = (data) => {
     let section = dataSections[i];
 
     // Continue if section is already number (not a cell number)
-    if (Number.parseFloat(section) != NaN) {
+    const checkIfNumber = Number.parseFloat(section);
+    if (!Number.isNaN(checkIfNumber)) {
       continue;
     }
-
     const dataAtCell = getCellDataFromCellReference(section);
-    if ((dataAtCell == null) | (Number.parseFloat(dataAtCell) == NaN)) {
+    if (dataAtCell == null) {
       return "CALC ERROR";
+    } else if (dataAtCell == "CYCLIC ERROR") {
+      return "CYCLIC ERROR";
+    } else if (Number.isNaN(Number.parseFloat(dataAtCell))) {
+      return "NaN";
     }
 
     // Replace the parsedValue in the data string
@@ -301,7 +319,7 @@ const generateGridElement = (table) => {
     // Add Row Data
     for (let col = 0; col < table[row].length; col++) {
       let data = table[row][col];
-      let parsedData = parseData(data);
+      const parsedData = parseData(data);
       const dataNode = document.createTextNode(parsedData);
 
       const tableDataNode = document.createElement("td");
@@ -331,10 +349,6 @@ const setup = () => {
 
   const storedTable = getTableData();
   updateDisplay(storedTable);
-
-  setTableCell(0, 0, "1");
-  setTableCell(0, 1, "1");
-  setTableCell(0, 2, "=sum(a1:b1)");
 };
 
 window.addEventListener("load", setup);
