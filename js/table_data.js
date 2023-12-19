@@ -16,11 +16,29 @@ const getTableData = () => {
   return table_data;
 };
 
+/**
+ * Sets the Cell at the specified row and col with the specified data
+ * @param {int} row
+ * @param {int} col
+ * @param {string} data
+ */
 const setTableCell = (row, col, data) => {
   const table = getTableData();
   table[row][col] = data;
   setTableData(table);
   updateDisplay(table);
+};
+
+/**
+ * Retrieves cell data from the row and col specified
+ * @param {int} row
+ * @param {int} col
+ * @returns {string}
+ */
+const getTableCell = (row, col) => {
+  const table = getTableData();
+  const data = table[row][col];
+  return data;
 };
 
 /**
@@ -57,14 +75,80 @@ const indexToAlphabet = (index) => {
  * @returns
  */
 const alphabetToIndex = (letters) => {
+  let capitalLetters = letters.toUpperCase();
   let index = 0;
-  for (var i = 0; i < letters.length; i++) {
-    const currentLetter = letters.charAt(i);
+  for (var i = 0; i < capitalLetters.length; i++) {
+    const currentLetter = capitalLetters.charAt(i);
     const letterNumber = currentLetter.charCodeAt() - 64; // 65 is 'A'
     index = index * 26 + letterNumber;
   }
-  console.log("Letter: " + letter + " to " + index);
   return index;
+};
+
+/**
+ * Gets Cell Data from Cell Number (eg. A12)
+ * @param {string} cellNum a string in the Excel Cell Format (eg. A12)
+ * @returns {string | null} the value of the cell specified from the parameter, or null if the cell number was invalid
+ */
+const getCellDataFromCellNumber = (cellNum) => {
+  // Parse Cell Number
+  let letterNumberSplitIndex = cellNum.search(/[1-9]/);
+  const letters = cellNum.substring(0, letterNumberSplitIndex);
+  const numbers = cellNum.substring(letterNumberSplitIndex);
+
+  // Get Cell Data
+  try {
+    const row = alphabetToIndex(letters); // Might return if letters are not valid (let through by regex)
+    const col = Number.parseInt(numbers);
+
+    if (Number.parseInt(numbers) == NaN) {
+      return null;
+    }
+
+    const cellData = getTableCell(row - 1, col - 1); //-1 to account for array indexing
+    return cellData;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
+/**
+ * Parses the Cell Data for Table Display. If it is a function (denoted by =), then the value of that function is calculated
+ * @param {string} data
+ * @returns {string} the calculated cell value if it is a function, otherwise the cell data
+ */
+const parseData = (data) => {
+  if (data == "") {
+    return "";
+  }
+  if (data.charAt(0) != "=") {
+    return data;
+  }
+
+  // At this point, data must be a formula and must be parsed
+  // NOTE: This uses Function(), which is only used given that this for a small project with no actual saving.
+  // If actual data is being stored or this is being deployed, this code must be rewritten.
+  // See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval!
+  let parsedFunction = data.slice(1); // Remove equals sign
+  const dataSections = parsedFunction.split(/\+|\-|\*|\/|\(|\)/);
+
+  for (let i = 0; i < dataSections.length; i++) {
+    let section = dataSections[i];
+    const dataAtCell = getCellDataFromCellNumber(section);
+    if ((dataAtCell == null) | (Number.parseFloat(dataAtCell) == NaN)) {
+      return "Error";
+    }
+
+    // Replace the parsedValue in the data string
+    parsedFunction = parsedFunction.replace(section, dataAtCell);
+  }
+
+  // Return Back Calculated Data using UNSAFE method
+  const calculateUnsafe = (fn) => {
+    return new Function("return " + fn)();
+  };
+  return calculateUnsafe(parsedFunction);
 };
 
 /**
@@ -90,7 +174,7 @@ const tableEdit = (row, col, originalContent) => {
     "Enter your new data (previous value: " + originalContent + ")";
   let response = prompt(promptText, originalContent);
   if (response != null) {
-    setTableCell(row, col, response.toUpperCase());
+    setTableCell(row, col, response);
   }
 };
 
@@ -128,7 +212,8 @@ const generateGridElement = (table) => {
     // Add Row Data
     for (let col = 0; col < table[row].length; col++) {
       let data = table[row][col];
-      const dataNode = document.createTextNode(data);
+      let parsedData = parseData(data);
+      const dataNode = document.createTextNode(parsedData);
 
       const tableDataNode = document.createElement("td");
 
