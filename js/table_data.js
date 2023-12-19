@@ -1,7 +1,7 @@
 let table_data = [];
 
 /**
- *
+ * Sets the Stored Table Data
  * @param {string[][]} updatedTable
  */
 const setTableData = (updatedTable) => {
@@ -9,26 +9,18 @@ const setTableData = (updatedTable) => {
 };
 
 /**
- *
- * @returns {string[][]}
+ * Returns the Stored Table Data
+ * @returns {string[][]} the Table Data
  */
 const getTableData = () => {
   return table_data;
 };
 
 /**
- *
- * @param {int} i
- * @returns
- */
-const getCharForNumber = (i) => {
-  return i > 0 && i < 27 ? String.valueOf(char(i + "A" - 1)) : null;
-};
-
-/**
- *
+ * Generates a "Excel-Like" Column Label from a number
+ * Eg. 2 => B, 27 => AA
  * @param {int} index
- * @returns
+ * @returns an "Excel-Like" column label.
  */
 const indexToAlphabet = (index) => {
   if (index == 0) {
@@ -53,7 +45,7 @@ const indexToAlphabet = (index) => {
 };
 
 /**
- *
+ * Calculates and returns a number based upon a "Excel-Like" Column Label
  * @param {string} letters
  * @returns
  */
@@ -69,27 +61,27 @@ const alphabetToIndex = (letters) => {
 };
 
 /**
- *
+ * Creates an Empty Grid based upon the parameters
  * @param {int} numOfCols
  * @param {int} numOfRows
- * @returns
+ * @returns an empty grid of size [numOfRows][numOfCols]
  */
-const getEmptyGrid = (numOfCols, numOfRows) => {
+const getEmptyGrid = (numOfRows, numOfCols) => {
   let data = [];
-  for (let col = 0; col < numOfCols; col++) {
-    const newRow = [];
-    for (let row = 0; row < numOfRows; row++) {
-      newRow.push("");
+  for (let row = 0; row < numOfRows; row++) {
+    const newCol = [];
+    for (let col = 0; col < numOfCols; col++) {
+      newCol.push("");
     }
-    data.push(newRow);
+    data.push(newCol);
   }
   return data;
 };
 
 /**
- *
- * @param {string[][]} table
- * @returns
+ * Generates the Table HTML element based upon the parameter provided
+ * @param {string[][]} table - the data to be displayed
+ * @returns a Table HTML element
  */
 const generateGridElement = (table) => {
   const tableDiv = document.createElement("table");
