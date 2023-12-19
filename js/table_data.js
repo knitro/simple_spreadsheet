@@ -91,39 +91,50 @@ const getEmptyGrid = (numOfCols, numOfRows) => {
  * @param {string[][]} table
  * @returns
  */
-const generateGridHtml = (table) => {
-  let html = "<table>";
+const generateGridElement = (table) => {
+  const tableDiv = document.createElement("table");
 
   // Create Headers
-  html += "<tr>";
+  const headerDiv = document.createElement("tr");
   for (let col = 0; col <= table.length; col++) {
     const colLabel = indexToAlphabet(col);
-    html += "<th>" + colLabel + "</th>";
+    const textNode = document.createTextNode(colLabel);
+
+    const tableHeader = document.createElement("th");
+    tableHeader.appendChild(textNode);
+    headerDiv.append(tableHeader);
   }
-  html += "</tr>";
+  tableDiv.append(headerDiv);
 
   // Create Table Data
   for (let row = 0; row < table.length; row++) {
+    const tableRow = document.createElement("tr");
+
     // Create Row Label Column
+    const rowHeader = document.createElement("th");
     const rowLabel = row + 1;
-    html += "<tr><th>" + rowLabel + "</th>";
+    const rowLabelNode = document.createTextNode(rowLabel);
+    rowHeader.appendChild(rowLabelNode);
+    tableRow.appendChild(rowHeader);
 
     // Add Row Data
     for (let col = 0; col < table[row].length; col++) {
       let data = table[row][col];
-      html += "<td>" + data + "</td>";
-    }
+      const dataNode = document.createTextNode(data);
 
-    html += "</tr>";
+      const tableDataNode = document.createElement("td");
+      tableDataNode.appendChild(dataNode);
+      tableRow.appendChild(tableDataNode);
+    }
+    tableDiv.appendChild(tableRow);
   }
 
-  html += "</table>";
-  return html;
+  return tableDiv;
 };
 
 const updateDisplay = (table) => {
-  const tableHtml = generateGridHtml(table);
-  document.getElementById("grid").innerHTML = tableHtml;
+  const tableElement = generateGridElement(table);
+  document.getElementById("grid").appendChild(tableElement);
 };
 
 const setup = () => {
