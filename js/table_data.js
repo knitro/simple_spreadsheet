@@ -103,7 +103,7 @@ const alphabetToIndex = (letters) => {
  * Gets the Cell Letter and Number from a cell reference string.
  * Note this DOES NOT check for existence of the cell reference, but rather splits where it should.
  * @param {string} cellRef
- * @returns {{string, string} | null} the Cell letters and number, or null if not valid
+ * @returns {{string, string} | {null, null}} the Cell letters and number, or {null, null} if not valid
  */
 const getCellLettersAndNumbers = (cellRef) => {
   // Parse Cell Number
@@ -271,10 +271,10 @@ const getEmptyGrid = (numOfRows, numOfCols) => {
 };
 
 /**
- *
- * @param {*} row
- * @param {*} col
- * @param {*} originalContent
+ * Creates a Prompt to change the value of a certain cell specified by the row and col params
+ * @param {number} row
+ * @param {number} col
+ * @param {string} originalContent
  */
 const tableEdit = (row, col, originalContent) => {
   const promptText =
