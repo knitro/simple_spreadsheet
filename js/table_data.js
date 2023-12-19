@@ -75,6 +75,9 @@ const indexToAlphabet = (index) => {
  * @returns
  */
 const alphabetToIndex = (letters) => {
+  if (letters == null) {
+    return null;
+  }
   let capitalLetters = letters.toUpperCase();
   let index = 0;
   for (var i = 0; i < capitalLetters.length; i++) {
@@ -86,25 +89,42 @@ const alphabetToIndex = (letters) => {
 };
 
 /**
- * Gets Cell Data from Cell Number (eg. A12)
- * @param {string} cellNum a string in the Excel Cell Format (eg. A12)
- * @returns {string | null} the value of the cell specified from the parameter, or null if the cell number was invalid
+ * Gets the Cell Letter and Number from a cell reference string.
+ * Note this DOES NOT check for existence of the cell reference, but rather splits where it should.
+ * @param {string} cellRef
+ * @returns {{string, string} | null} the Cell letters and number, or null if not valid
  */
-const getCellDataFromCellNumber = (cellNum) => {
+const getCellLettersAndNumbers = (cellRef) => {
   // Parse Cell Number
-  let letterNumberSplitIndex = cellNum.search(/[1-9]/);
-  const letters = cellNum.substring(0, letterNumberSplitIndex);
-  const numbers = cellNum.substring(letterNumberSplitIndex);
+  let letterNumberSplitIndex = cellRef.search(/[1-9]/);
 
+  const letters = cellRef.substring(0, letterNumberSplitIndex);
+  const numbers = cellRef.substring(letterNumberSplitIndex);
+
+  const numbersParsed = Number.parseInt(numbers);
+  if (numbersParsed == NaN) {
+    return null;
+  }
+
+  return { letters, numbers };
+};
+
+/**
+ * Gets Cell Data from Cell Reference (eg. A12)
+ * @param {string} cellRef a string in the Excel Cell Format (eg. A12)
+ * @returns {string | null} the value of the cell specified from the parameter, or null if the cell reference was invalid
+ */
+const getCellDataFromCellReference = (cellRef) => {
+  // Parse Cell Number
+  const { letters, numbers } = getCellLettersAndNumbers(cellRef);
   // Get Cell Data
   try {
-    const row = alphabetToIndex(letters); // Might return if letters are not valid (let through by regex)
-    const col = Number.parseInt(numbers);
+    const col = alphabetToIndex(letters); // Might return if letters are not valid (let through by regex)
+    const row = Number.parseInt(numbers);
 
     if (Number.parseInt(numbers) == NaN) {
       return null;
     }
-
     const cellData = getTableCell(row - 1, col - 1); //-1 to account for array indexing
     return cellData;
   } catch (error) {
@@ -131,13 +151,76 @@ const parseData = (data) => {
   // If actual data is being stored or this is being deployed, this code must be rewritten.
   // See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval!
   let parsedFunction = data.slice(1); // Remove equals sign
+
+  // Parsing for sum()
+  // NOTE: This parsing is for the format of sum([cell]:[cell]) where [cell] is a valid cell number
+  const sumRegex = /sum\(.+\)/gi;
+  const matchesForSum = parsedFunction.match(sumRegex);
+  if (matchesForSum != null) {
+    matchesForSum.forEach((match) => {
+      // Remove extra characters
+      const regex = /(sum)|\(|\)/gi;
+      let cleanedMatch = match.replaceAll(regex, "");
+      let cells = cleanedMatch.split(":");
+      if (cells.length != 2) {
+        return "Cell Error";
+      }
+
+      // Calculate the Sum
+      const { letters: startLetter, numbers: startNum } =
+        getCellLettersAndNumbers(cells[0]);
+      const { letters: endLetter, numbers: endNum } = getCellLettersAndNumbers(
+        cells[1]
+      );
+
+      const minRow = Math.min(
+        Number.parseInt(startNum),
+        Number.parseInt(endNum)
+      );
+      const maxRow = Math.max(
+        Number.parseInt(startNum),
+        Number.parseInt(endNum)
+      );
+      const minCol = Math.min(
+        alphabetToIndex(startLetter),
+        alphabetToIndex(endLetter)
+      );
+      const maxCol = Math.max(
+        alphabetToIndex(startLetter),
+        alphabetToIndex(endLetter)
+      );
+
+      let sum = 0;
+      for (let row = minRow; row <= maxRow; row++) {
+        for (let col = minCol; col <= maxCol; col++) {
+          const cellData = getTableCell(row - 1, col - 1); //-1 to account for array indexing
+          const cellDataNumber = Number.parseFloat(cellData);
+          if (cellDataNumber == NaN) {
+            return "SUM NaN";
+          }
+          sum += cellDataNumber;
+        }
+      }
+
+      // Replace the parsedValue in the data string
+      parsedFunction = parsedFunction.replace(match, sum);
+    });
+  }
+
+  // Parsing for +, -, *, /
   const dataSections = parsedFunction.split(/\+|\-|\*|\/|\(|\)/);
 
   for (let i = 0; i < dataSections.length; i++) {
     let section = dataSections[i];
-    const dataAtCell = getCellDataFromCellNumber(section);
+
+    // Continue if section is already number (not a cell number)
+    if (Number.parseFloat(section) != NaN) {
+      continue;
+    }
+
+    const dataAtCell = getCellDataFromCellReference(section);
     if ((dataAtCell == null) | (Number.parseFloat(dataAtCell) == NaN)) {
-      return "Error";
+      return "CALC ERROR";
     }
 
     // Replace the parsedValue in the data string
@@ -169,6 +252,12 @@ const getEmptyGrid = (numOfRows, numOfCols) => {
   return data;
 };
 
+/**
+ *
+ * @param {*} row
+ * @param {*} col
+ * @param {*} originalContent
+ */
 const tableEdit = (row, col, originalContent) => {
   const promptText =
     "Enter your new data (previous value: " + originalContent + ")";
@@ -242,6 +331,10 @@ const setup = () => {
 
   const storedTable = getTableData();
   updateDisplay(storedTable);
+
+  setTableCell(0, 0, "1");
+  setTableCell(0, 1, "1");
+  setTableCell(0, 2, "=sum(a1:b1)");
 };
 
 window.addEventListener("load", setup);
